@@ -6,7 +6,6 @@ package logstash
 import (
 	"crypto/tls"
 	"errors"
-	"fmt"
 	"time"
 
 	"github.com/elastic/libbeat/common"
@@ -191,5 +190,4 @@ func (lj *logstash) addMeta(event common.MapStr) {
 		"beat": lj.index,
 		"type": event["type"].(string),
 	}
-	fmt.Printf("meta data: %v\n", event["@metadata"])
 }

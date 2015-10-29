@@ -42,7 +42,8 @@ loop:
 func ProcessWindowsControlEvents(stopCallback func()) {
 	err := svc.Run(os.Args[0], &beatService{})
 	if err != nil {
-		logp.Err("Error: %v", err)
+		logp.Info("Error executing service: %v", err)
+		logp.Info("If Windows service is run in foreground, the above error is expected and can be ignored.")
 	} else {
 		stopCallback()
 	}
