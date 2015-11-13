@@ -329,6 +329,10 @@ func TestSendMultipleBigBatchesViaLogstashTCP(t *testing.T) {
 	testSendMultipleBigBatchesViaLogstash(t, "multiple-big-tcp", false)
 }
 
+func TestSendMultipleBigBatchesViaLogstashTCPLarge(t *testing.T) {
+	testSendMultipleBigBatchesViaLogstashLarge(t, "multiple-big-tcp", false)
+}
+
 func TestSendMultipleBigBatchesViaLogstashTLS(t *testing.T) {
 	testSendMultipleBigBatchesViaLogstash(t, "multiple-big-tls", true)
 }
@@ -344,6 +348,55 @@ func testSendMultipleBigBatchesViaLogstash(t *testing.T, name string, tls bool) 
 	numBatches := 15
 	batchSize := 64
 	batches := make([][]common.MapStr, 0, numBatches)
+	for i := 0; i < numBatches; i++ {
+		batch := make([]common.MapStr, 0, batchSize)
+		for j := 0; j < batchSize; j++ {
+			event := common.MapStr{
+				"@timestamp": common.Time(time.Now()),
+				"host":       "test-host",
+				"type":       "log",
+				"message":    fmt.Sprintf("batch hello world - %v", i*batchSize+j),
+			}
+			batch = append(batch, event)
+		}
+		batches = append(batches, batch)
+	}
+
+	for _, batch := range batches {
+		sig := outputs.NewSyncSignal()
+		ls.BulkPublish(sig, time.Now(), batch)
+		ok := sig.Wait()
+		assert.Equal(t, true, ok)
+	}
+
+	// wait for logstash event flush + elasticsearch
+	ok := waitUntilTrue(5*time.Second, checkIndex(ls, numBatches*batchSize))
+	assert.True(t, ok) // check number of events matches total number of events
+
+	// search value in logstash elasticsearch index
+	resp, err := ls.Read()
+	if err != nil {
+		return
+	}
+	if len(resp) != 10 {
+		t.Errorf("wrong number of results: %d", len(resp))
+	}
+}
+
+func testSendMultipleBigBatchesViaLogstashLarge(t *testing.T, name string, tls bool) {
+	if testing.Short() {
+		t.Skip("Skipping in short mode. Requires Logstash and Elasticsearch")
+	}
+
+	ls := newTestLogstashOutput(t, name, tls)
+	defer ls.Cleanup()
+
+	numBatches := 10
+	// Testing with batch size bigger then maxWindowSize
+	batchSize := 2048
+	batches := make([][]common.MapStr, 0, numBatches)
+
+	// Generate batches
 	for i := 0; i < numBatches; i++ {
 		batch := make([]common.MapStr, 0, batchSize)
 		for j := 0; j < batchSize; j++ {

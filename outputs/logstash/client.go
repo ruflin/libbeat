@@ -32,8 +32,7 @@ type lumberjackClient struct {
 const (
 	minWindowSize             int = 1
 	defaultStartMaxWindowSize int = 10
-
-	maxAllowedTimeoutErr int = 3
+	maxAllowedTimeoutErr      int = 3
 )
 
 // errors
@@ -69,6 +68,9 @@ func (l *lumberjackClient) PublishEvent(event common.MapStr) error {
 	return err
 }
 
+// PublishEvents sends all events to logstash
+// In case it fails to send some events because of failure or exceeding window size, these events are returned.
+// It is up to the responsibility of the function call PublishEvents to resend these events.
 func (l *lumberjackClient) PublishEvents(
 	events []common.MapStr,
 ) ([]common.MapStr, error) {
