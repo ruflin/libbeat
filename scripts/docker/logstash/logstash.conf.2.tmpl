@@ -15,10 +15,12 @@ input {
 
 output {
   elasticsearch {
-      hosts => []
+      hosts => ""
+      sniffing => true
+      manage_template => false
       index => "%{[@metadata][beat]}-%{+YYYY.MM.dd}"
       document_type => "%{[@metadata][type]}"
   }
 
-  # stdout{}
+  stdout{}
 }

@@ -1,29 +1,28 @@
+# Builds up the integration test environment for the most recent versions
 libbeat:
   build: .
   links:
     - redis
-    - elasticsearch-173
-    - elasticsearch-200
+    - elasticsearch
     - logstash
   environment:
     - REDIS_HOST=redis
     - REDIS_PORT=6379
+    - ES_HOST=elasticsearch
     - LS_HOST=logstash
     - LS_TCP_PORT=5044
     - LS_TLS_PORT=5055
   env_file:
     - build/test.env
-elasticsearch-173:
-  image: elasticsearch:1.7.3
-elasticsearch-200:
-  image: elasticsearch:2.0.0-rc1
+elasticsearch:
+  image: elasticsearch:2.0.0
   command: elasticsearch -Des.network.host=0.0.0.0
 redis:
   image: redis
 logstash:
   build: scripts/docker/logstash
+  dockerfile: Dockerfile-2.0.0
   env_file:
     - build/test.env
   links:
-    - elasticsearch-173
-    - elasticsearch-200
+    - elasticsearch

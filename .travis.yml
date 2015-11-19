@@ -9,9 +9,9 @@ go:
 
 env:
   - TARGETS="check"
-  # - TARGETS="testsuite ES_HOST=elasticsearch-173"
-  - TARGETS="testsuite ES_HOST=elasticsearch-200"
+  - TARGETS="testsuite ES_HOST=elasticsearch"
   - TARGETS="crosscompile"
+  - TARGETS="matrix"
 
 before_install:
   # Redo the travis setup but with the elastic/libbeat path. This is needed so the package path is correct

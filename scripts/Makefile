@@ -7,13 +7,15 @@ GODEP=$(GOPATH)/bin/godep
 export PATH := ./bin:$(PATH)
 GOFILES = $(shell find . -type f -name '*.go')
 SHELL=/bin/bash
-ES_HOST?="elasticsearch-200"
-BUILD_DIR=build
+ES_HOST?="elasticsearch"
+LS_HOST?="logstash"
+BUILD_DIR?=build
 COVERAGE_DIR=${BUILD_DIR}/coverage
 TIMEOUT?= 90
 BEATNAME?=libbeat
 TEST_ENVIRONMENT?=false
 SYSTEM_TESTS?=false
+COMPOSE_FILE?=docker-compose.yml
 
 
 ### BUILDING ###
@@ -26,7 +28,7 @@ build: deps $(GOFILES)
 # Create test coverage binary
 .PHONY: libbeat.test
 libbeat.test: $(GOFILES)
-	$(GODEP) go test -c -covermode=atomic -coverpkg ./...
+	$(GODEP) go test -c -covermode=atomic -coverpkg github.com/elastic/libbeat/...
 
 # Cross-compile beat for the OS and architectures listed in
 # crosscompile.bash. The binaries are placed in the ./bin dir.
@@ -51,7 +53,7 @@ check:
 clean:
 	go fmt ./...
 	gofmt -w .
-	-rm -r build
+	-rm -r ${BUILD_DIR}
 	-rm ${BEATNAME} ${BEATNAME}.test
 
 # Shortcut for continuous integration
@@ -92,7 +94,7 @@ integration-tests: prepare-tests
 integration-tests-environment:
 	make prepare-tests
 	make build-image
-	NAME=$$(docker-compose run -d ${BEATNAME} make integration-tests | awk 'END{print}') || exit 1; \
+	NAME=$$(docker-compose -f ${COMPOSE_FILE} run -d ${BEATNAME} make integration-tests | awk 'END{print}') || exit 1; \
 	echo "docker ${BEATNAME} test container: '$$NAME'"; \
 	docker attach $$NAME; CODE=$$?;\
 	mkdir -p ${COVERAGE_DIR}; \
@@ -103,18 +105,18 @@ integration-tests-environment:
 # Runs the system tests
 .PHONY: system-tests
 system-tests: libbeat.test prepare-tests system-tests-setup
-	. build/system-tests/env/bin/activate; nosetests -w tests/system --process-timeout=$(TIMEOUT) --with-timer
+	. ${BUILD_DIR}/system-tests/env/bin/activate; nosetests -w tests/system --process-timeout=$(TIMEOUT) --with-timer
 	# Writes atomic mode on top of file
 	echo 'mode: atomic' > ${COVERAGE_DIR}/system.cov
 	# Collects all system coverage files and skips top line with mode
-	tail -q -n +2 ./build/system-tests/run/**/*.cov >> ${COVERAGE_DIR}/system.cov
+	tail -q -n +2 ${BUILD_DIR}/system-tests/run/**/*.cov >> ${COVERAGE_DIR}/system.cov
 
 # Runs the system tests
 .PHONY: system-tests-setup
 system-tests-setup: tests/system/requirements.txt
-	test -d env || virtualenv build/system-tests/env > /dev/null
-	. build/system-tests/env/bin/activate && pip install -Ur tests/system/requirements.txt > /dev/null
-	touch build/system-tests/env/bin/activate
+	test -d env || virtualenv ${BUILD_DIR}/system-tests/env > /dev/null
+	. ${BUILD_DIR}/system-tests/env/bin/activate && pip install -Ur tests/system/requirements.txt > /dev/null
+	touch ${BUILD_DIR}/system-tests/env/bin/activate
 
 
 # Run benchmark tests
@@ -163,22 +165,23 @@ update:
 # Builds the environment to test beat
 .PHONY: build-image
 build-image: write-environment
-	docker-compose build
+	docker-compose -f $(COMPOSE_FILE) build
 
 # Runs the environment so the redis and elasticsearch can also be used for local development
 # To use it for running the test, set ES_HOST and REDIS_HOST environment variable to the ip of your docker-machine.
 .PHONY: start-environment
 start-environment: stop-environment
-	docker-compose up -d redis elasticsearch-173 elasticsearch-200 logstash
+	docker-compose -f $(COMPOSE_FILE) up -d redis elasticsearch logstash
 
 .PHONY: stop-environment
 stop-environment:
-	-docker-compose stop
-	-docker-compose rm -f
+	-docker-compose -f $(COMPOSE_FILE) stop
+	-docker-compose -f $(COMPOSE_FILE) rm -f
 	-docker ps -a  | grep ${BEATNAME} | grep Exited | awk '{print $$1}' | xargs docker rm
 
 .PHONY: write-environment
 write-environment:
-	mkdir -p build
-	echo "ES_HOST=${ES_HOST}" > build/test.env
-	echo "ES_PORT=9200" >> build/test.env
+	mkdir -p ${BUILD_DIR}
+	echo "ES_HOST=${ES_HOST}" > ${BUILD_DIR}/test.env
+	echo "ES_PORT=9200" >> ${BUILD_DIR}/test.env
+	echo "LS_HOST=${LS_HOST}" >> ${BUILD_DIR}/test.env

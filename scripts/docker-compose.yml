@@ -1,0 +1,76 @@
+# Builds up the integration test environment for the build matrix
+# This file should be automatically generated in the future
+libbeat:
+  build: ../
+  links:
+    - redis
+    - elasticsearch-145
+    - elasticsearch-152
+    - elasticsearch-162
+    - elasticsearch-173
+    - elasticsearch-200
+    - elasticsearch-210
+    - logstash-154
+    - logstash-200
+    - logstash-210
+  environment:
+    - REDIS_HOST=redis
+    - REDIS_PORT=6379
+    - LS_TCP_PORT=5044
+    - LS_TLS_PORT=5055
+    - INSECURE=true
+  env_file:
+    - ../build/test.env
+elasticsearch-145:
+  image: elasticsearch:1.4.5
+elasticsearch-152:
+  image: elasticsearch:1.5.2
+elasticsearch-162:
+  image: elasticsearch:1.6.2
+elasticsearch-173:
+  image: elasticsearch:1.7.3
+elasticsearch-200:
+  image: elasticsearch:2.0.0
+  command: elasticsearch -Des.network.host=0.0.0.0
+elasticsearch-210:
+  build: docker/elasticsearch
+  dockerfile: Dockerfile-2.1.0
+  command: elasticsearch -Des.network.host=0.0.0.0
+redis:
+  image: redis
+logstash-154:
+  build: docker/logstash
+  dockerfile: Dockerfile-1.5.4
+  env_file:
+    - ../build/test.env
+  links:
+    - elasticsearch-145
+    - elasticsearch-152
+    - elasticsearch-162
+    - elasticsearch-173
+    - elasticsearch-200
+    - elasticsearch-210
+logstash-200:
+  build: docker/logstash
+  dockerfile: Dockerfile-2.0.0
+  env_file:
+    - ../build/test.env
+  links:
+    - elasticsearch-145
+    - elasticsearch-152
+    - elasticsearch-162
+    - elasticsearch-173
+    - elasticsearch-200
+    - elasticsearch-210
+logstash-210:
+  build: docker/logstash
+  dockerfile: Dockerfile-2.1.0
+  env_file:
+    - ../build/test.env
+  links:
+    - elasticsearch-145
+    - elasticsearch-152
+    - elasticsearch-162
+    - elasticsearch-173
+    - elasticsearch-200
+    - elasticsearch-210

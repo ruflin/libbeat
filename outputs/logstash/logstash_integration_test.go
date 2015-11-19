@@ -21,6 +21,7 @@ const (
 	elasticsearchDefaultHost = "localhost"
 	elasticsearchDefaultPort = "9200"
 
+	insecureDefault           = true
 	integrationTestWindowSize = 32
 )
 
@@ -81,6 +82,16 @@ func getElasticsearchHost() string {
 	)
 }
 
+func getInsecure() bool {
+
+	insecure := getenv("INSECURE", "false")
+
+	if insecure == "true" {
+		return true
+	}
+	return insecureDefault
+}
+
 func esConnect(t *testing.T, index string) *esConnection {
 	ts := time.Now().UTC()
 
@@ -126,7 +137,7 @@ func newTestLogstashOutput(t *testing.T, test string, tls bool) *testOutputer {
 	if tls {
 		config.Hosts = []string{getLogstashTLSHost()}
 		config.TLS = &outputs.TLSConfig{
-			Insecure: false,
+			Insecure: true,
 			CAs: []string{
 				"/etc/pki/tls/certs/logstash.crt",
 			},
