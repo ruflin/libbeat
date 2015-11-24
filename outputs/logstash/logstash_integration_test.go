@@ -96,6 +96,8 @@ func esConnect(t *testing.T, index string) *esConnection {
 	ts := time.Now().UTC()
 
 	host := getElasticsearchHost()
+
+	t.Logf("elasticsearch host: %v", host)
 	index = fmt.Sprintf("%s-%02d.%02d.%02d",
 		index, ts.Year(), ts.Month(), ts.Day())
 
@@ -127,6 +129,8 @@ func testElasticsearchIndex(test string) string {
 
 func newTestLogstashOutput(t *testing.T, test string, tls bool) *testOutputer {
 	windowSize := integrationTestWindowSize
+
+	t.Logf("logstash host: %v (%v)", getLogstashHost(), getLogstashTLSHost())
 
 	config := &outputs.MothershipConfig{
 		Hosts:       []string{getLogstashHost()},
